@@ -38,8 +38,6 @@ Rel(keycloak, api, "Autenticación JWT ")
 
 ```mermaid
 C4Component
-title Componentes del API de Órdenes
-
 Container_Boundary(api, "API Express (Node.js)") {
   Component(Router, "HTTP Router", "Express", "Entradas HTTP para pedidos/productos")
   Component(Service, "Pedidos Service", "Lógica de negocio", "total, stock, cambio estado")
@@ -58,7 +56,10 @@ Rel(Router, Auth, "autenticación")
 Rel(Service, Repo, "leer/grabar")
 Rel(Service, WebSocket, "notifica pedidoConfirmado")
 Rel(Consumer, WebSocket, "notifica pedidoActualizado")
+```
 
+```mermaid
+C4Component
 Container_Boundary(servCocina, "Servicio de Cocina (consumidor)") {
   Component(Consumer, "Rabbit Consumer", "amqplib", "suscribe a PedidoConfirmado")
   Component(Service, "Cocina Service", "Lógica de negocio", "transiciones de estado preparando/listo")
@@ -69,8 +70,6 @@ Container_Boundary(servCocina, "Servicio de Cocina (consumidor)") {
 Rel(Consumer, Service, "procesa mensaje")
 Rel(Service, Repo, "leer/grabar")
 Rel(Service, Messaging, "Publica PedidoActualizado")
-
-
 ```
 
 ## Decisiones de arquitectura
