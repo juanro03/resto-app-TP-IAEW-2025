@@ -74,45 +74,45 @@ Rel(Service, Messaging, "Publica PedidoActualizado")
 ## Explicación funcionamiento diagrama C4
 
 ### Entidades: Pedido, Producto
-Este es el "qué" se almacena. El C4 lo resuelve en:
+        Este es el "qué" se almacena. El C4 lo resuelve en:
 
-Container Diagram: Con el contenedor MongoDB [Document DB], que indica "Persistencia pedidos y productos".
+        Container Diagram: Con el contenedor MongoDB [Document DB], que indica "Persistencia pedidos y productos".
 
-Components Diagram: Con el componente Repositorio Mongo [Mongoose], que tiene la responsabilidad explícita de CRUD pedidos/productos.
+        Components Diagram: Con el componente Repositorio Mongo [Mongoose], que tiene la responsabilidad explícita de CRUD pedidos/productos.
 
 ### Transacción: Confirmar pedido (stock, total, estados)
-Este es el "corazón" de la lógica de negocio. El C4 lo resuelve en el contenedor API Express:
+        Este es el "corazón" de la lógica de negocio. El C4 lo resuelve en el contenedor API Express:
 
-Un cliente llama al HTTP Router (ej: POST /pedidos).
+        Un cliente llama al HTTP Router (ej: POST /pedidos).
 
-El Auth Middleware y Validation Layer lo aprueban.
+        El Auth Middleware y Validation Layer lo aprueban.
 
-El componente Pedidos Service [Lógica de negocio] es el protagonista. Tu diagrama especifica que este componente es responsable de calcular el total, verificar el stock y gestionar el cambio de estado (ej: de "Pendiente" a "Confirmado").
+        El componente Pedidos Service [Lógica de negocio] es el protagonista. Tu diagrama especifica que este componente es responsable de calcular el total, verificar el stock y gestionar el cambio de estado (ej: de "Pendiente" a "Confirmado").
 
-Finalmente, le pide al Repositorio Mongo que guarde (grabar) el resultado de esta transacción.
+        Finalmente, le pide al Repositorio Mongo que guarde (grabar) el resultado de esta transacción.
 
 ### Asincronía: Avances de cocina y notificaciones al cliente
-Este requisito se divide en dos partes:
+        Este requisito se divide en dos partes:
 
-Avances de cocina (Asincronía):
+- Avances de cocina (Asincronía):
 
-Cuando el Pedidos Service confirma el pedido, el Event Publisher publica un mensaje PedidoConfirmado en RabbitMQ.
+        Cuando el Pedidos Service confirma el pedido, el Event Publisher publica un mensaje PedidoConfirmado en RabbitMQ.
 
-El Servicio de Cocina lo recibe a través de su Rabbit Consumer.
+        El Servicio de Cocina lo recibe a través de su Rabbit Consumer.
 
-El Cocina Service procesa el mensaje y realiza las "transiciones de estado: preparado / listo". Este es el "avance de cocina" asincrónico.
+        El Cocina Service procesa el mensaje y realiza las "transiciones de estado: preparado / listo". Este es el "avance de cocina" asincrónico.
 
-Notificaciones al cliente:
+- Notificaciones al cliente:
 
-Una vez que el Cocina Service actualiza el estado (ej: a "Listo"), el componente WS Notifier emite el evento 'pedido_actualizado'.
+        Una vez que el Cocina Service actualiza el estado (ej: a "Listo"), el componente WS Notifier emite el evento 'pedido_actualizado'.
 
-Esto notifica al cliente (o al tablero de la cocina) en tiempo real sobre ese avance.
+        Esto notifica al cliente (o al tablero de la cocina) en tiempo real sobre ese avance.
 
 ### Integración: WebSocket tablero de cocina...
 
-Container Diagram: El contenedor API Express indica que "incluye servidor WebSocket".
+        Container Diagram: El contenedor API Express indica que "incluye servidor WebSocket".
 
-Components Diagram: Se muestran los componentes WS Notifier, cuya única función es emitir eventos ('pedido_confirmado', 'pedido_actualizado') para ser consumidos por un "tablero de cocina" o el cliente.
+        Components Diagram: Se muestran los componentes WS Notifier, cuya única función es emitir eventos ('pedido_confirmado', 'pedido_actualizado') para ser consumidos por un "tablero de cocina" o el cliente.
 
 
 
