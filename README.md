@@ -74,14 +74,14 @@ Rel(Service, Messaging, "Publica PedidoActualizado")
 ## Explicación funcionamiento diagrama C4
 
 ### Entidades: Pedido, Producto
-        Este es el "qué" se almacena. El C4 lo resuelve en:
+    Este es el "qué" se almacena. El C4 lo resuelve en:
 
         Container Diagram: Con el contenedor MongoDB [Document DB], que indica "Persistencia pedidos y productos".
 
         Components Diagram: Con el componente Repositorio Mongo [Mongoose], que tiene la responsabilidad explícita de CRUD pedidos/productos.
 
 ### Transacción: Confirmar pedido (stock, total, estados)
-        Este es el "corazón" de la lógica de negocio. El C4 lo resuelve en el contenedor API Express:
+    Este es el "corazón" de la lógica de negocio. El C4 lo resuelve en el contenedor API Express:
 
         Un cliente llama al HTTP Router (ej: POST /pedidos).
 
@@ -92,7 +92,7 @@ Rel(Service, Messaging, "Publica PedidoActualizado")
         Finalmente, le pide al Repositorio Mongo que guarde (grabar) el resultado de esta transacción.
 
 ### Asincronía: Avances de cocina y notificaciones al cliente
-        Este requisito se divide en dos partes:
+    Este requisito se divide en dos partes:
 
 - Avances de cocina (Asincronía):
 
