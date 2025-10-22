@@ -1,0 +1,38 @@
+services:
+  api:
+    image: node:18-alpine
+    container_name: api
+    command: ["node","-e","require('http').createServer((_,res)=>{res.end('API OK')}).listen(3000)"]
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+      - broker
+    environment:
+      - PORT=3000
+
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    command: ["--replSet","rs0","--bind_ip_all"]
+    volumes:
+      - mongo-data:/data/db
+
+  mongo-init:
+    image: mongo:6
+    depends_on:
+      - mongo
+    entrypoint: ["bash","-lc","mongosh --host mongo:27017 --eval 'rs.initiate({_id:\"rs0\",members:[{_id:0,host:\"mongo:27017\"}]})' && sleep 2"]
+
+  broker:
+    image: rabbitmq:3-management
+    container_name: broker
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+volumes:
+  mongo-data:

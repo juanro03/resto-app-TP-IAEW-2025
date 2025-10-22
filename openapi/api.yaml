@@ -1,0 +1,46 @@
+openapi: 3.1.0
+info:
+  title: Sistema de Pedidos del Restaurante
+  version: 1.0.0
+paths:
+  /productos:
+    get:
+      summary: Listar productos
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                - nombre: "Milanesa"
+                  precio: 6000
+                  stock: 20
+    post:
+      summary: Crear producto
+      requestBody:
+        content:
+          application/json:
+            example:
+              nombre: "Agua"
+              precio: 1200
+              stock: 100
+      responses:
+        "201":
+          description: Creado
+  /pedidos/{id}/confirmar:
+    post:
+      summary: Confirmar pedido
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Pedido confirmado
+          content:
+            application/json:
+              example:
+                id: "abcd1234"
+                estado: "confirmado"
+                total: 12500
