@@ -73,13 +73,13 @@ Rel(Service, Messaging, "Publica PedidoActualizado")
 ```
 ## Explicación funcionamiento diagrama C4
 
-### Entidades: Pedido, Producto
+### 1. Entidades: Pedido, Producto
 Este es el "qué" se almacena. El C4 lo resuelve en:
 
 Container Diagram: Con el contenedor MongoDB [Document DB], que indica "Persistencia pedidos y productos".
 Components Diagram: Con el componente Repositorio Mongo [Mongoose], que tiene la responsabilidad explícita de CRUD pedidos/productos.
 
-### Transacción: Confirmar pedido (stock, total, estados)
+### 2. Transacción: Confirmar pedido (stock, total, estados)
 Este es el "corazón" de la lógica de negocio. El C4 lo resuelve en el contenedor API Express:
 
 Un cliente llama al HTTP Router (ej: POST /pedidos).
@@ -87,7 +87,7 @@ El Auth Middleware y Validation Layer lo aprueban.
 El componente Pedidos Service [Lógica de negocio] es el protagonista. Tu diagrama especifica que este componente es responsable de calcular el total, verificar el stock y gestionar el cambio de estado (ej: de "Pendiente" a "Confirmado").
 Finalmente, le pide al Repositorio Mongo que guarde (grabar) el resultado de esta transacción.
 
-### Asincronía: Avances de cocina y notificaciones al cliente
+### 3. Asincronía: Avances de cocina y notificaciones al cliente
 Este requisito se divide en dos partes:
 
 - Avances de cocina (Asincronía):
@@ -99,7 +99,7 @@ El Cocina Service procesa el mensaje y realiza las "transiciones de estado: prep
 Una vez que el Cocina Service actualiza el estado (ej: a "Listo"), el componente WS Notifier emite el evento 'pedido_actualizado'.
 Esto notifica al cliente (o al tablero de la cocina) en tiempo real sobre ese avance.
 
-### Integración: WebSocket tablero de cocina...
+### 4. Integración: WebSocket tablero de cocina...
 
 Container Diagram: El contenedor API Express indica que "incluye servidor WebSocket".
 Components Diagram: Se muestran los componentes WS Notifier, cuya única función es emitir eventos ('pedido_confirmado', 'pedido_actualizado') para ser consumidos por un "tablero de cocina" o el cliente.
