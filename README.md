@@ -73,14 +73,14 @@ Rel(Service, Messaging, "Publica PedidoActualizado")
 ```
 ## Explicación funcionamiento diagrama C4
 
-1. Entidades: Pedido, Producto
+### Entidades: Pedido, Producto
 Este es el "qué" se almacena. El C4 lo resuelve en:
 
 Container Diagram: Con el contenedor MongoDB [Document DB], que indica "Persistencia pedidos y productos".
 
 Components Diagram: Con el componente Repositorio Mongo [Mongoose], que tiene la responsabilidad explícita de CRUD pedidos/productos.
 
-2. Transacción: Confirmar pedido (stock, total, estados)
+### Transacción: Confirmar pedido (stock, total, estados)
 Este es el "corazón" de la lógica de negocio. El C4 lo resuelve en el contenedor API Express:
 
 Un cliente llama al HTTP Router (ej: POST /pedidos).
@@ -91,7 +91,7 @@ El componente Pedidos Service [Lógica de negocio] es el protagonista. Tu diagra
 
 Finalmente, le pide al Repositorio Mongo que guarde (grabar) el resultado de esta transacción.
 
-3. Asincronía: Avances de cocina y notificaciones al cliente
+### Asincronía: Avances de cocina y notificaciones al cliente
 Este requisito se divide en dos partes:
 
 Avances de cocina (Asincronía):
@@ -108,7 +108,7 @@ Una vez que el Cocina Service actualiza el estado (ej: a "Listo"), el componente
 
 Esto notifica al cliente (o al tablero de la cocina) en tiempo real sobre ese avance.
 
-4. Integración: WebSocket tablero de cocina...
+### Integración: WebSocket tablero de cocina...
 
 Container Diagram: El contenedor API Express indica que "incluye servidor WebSocket".
 
