@@ -116,6 +116,12 @@ Ver ADRs en [docs/adrs/](docs/adrs/)
 - MongoDB (Replica Set)
 - Script de migración y seed: [scripts/migrate-and-seed.js](scripts/migrate-and-seed.js)
 
+## Release
+
+- Para obtener el commit hash del último commit:
+```bash
+git rev-parse HEAD
+
 ## 🐳 Ejecución local
 ```bash
 docker compose up -d
