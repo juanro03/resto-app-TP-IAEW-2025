@@ -1,19 +1,19 @@
-## 📘 Diagrama de Clases
+## Modelo de datos
 
 ```mermaid
 classDiagram
   class Producto {
-    ObjectId _id
-    string   nombre
-    number   precio
-    int      stock
+    _id:     ObjectId 
+    nombre: string   
+    precio: number   
+    stock:  int      
   }
 
   class Pedido {
-    ObjectId _id
-    string   estado  // pendiente | preparando | listo
-    number   total
-    Array<Object> items  // lista de productos incluidos
+    _id:    ObjectId 
+    estado: string      // pendiente | preparando | listo
+    total:  number   
+    items:  Array<Object>   // lista de productos incluidos
   }
 
   Pedido --> Producto : incluye productos
@@ -22,7 +22,7 @@ classDiagram
 
 ---
 
-### 🧠 **Explicación**
+### **Explicación**
 
 - **Producto**: representa cada artículo disponible en el restaurante (nombre, precio, stock).  
 - **Pedido**: contiene una lista de productos (`items`) y un estado que refleja su avance en cocina (`pendiente → preparando → listo`).  
