@@ -2,34 +2,93 @@ openapi: 3.1.0
 info:
   title: Sistema de Pedidos del Restaurante
   version: 1.0.0
+servers:
+  - url: http://localhost:3000
+
 paths:
-  /productos:
+  /health:
     get:
-      summary: Listar productos
+      summary: Healthcheck
       responses:
         "200":
           description: OK
           content:
             application/json:
-              example:
-                - nombre: "Milanesa"
-                  precio: 6000
-                  stock: 20
+              example: { status: "ok" }
+
+  /productos:
+    get:
+      summary: Listar productos
+      responses:
+        "200":
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Producto" }
+              examples:
+                ok:
+                  value:
+                    - { _id: "66f1...", nombre: "Milanesa", precio: 6000, stock: 25 }
+                    - { _id: "66f2...", nombre: "Pizza Muzza", precio: 7000, stock: 20 }
+
     post:
       summary: Crear producto
       requestBody:
+        required: true
         content:
           application/json:
-            example:
-              nombre: "Agua"
-              precio: 1200
-              stock: 100
+            schema: { $ref: "#/components/schemas/ProductoCreate" }
+            examples:
+              req:
+                value: { nombre: "Agua", precio: 1200, stock: 100 }
       responses:
         "201":
-          description: Creado
+          description: Producto creado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Producto" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /pedidos:
+    get:
+      summary: Listar pedidos
+      responses:
+        "200":
+          description: Lista de pedidos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Pedido" }
+
+    post:
+      summary: Crear pedido (estado inicial 'pendiente')
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PedidoCreate" }
+            examples:
+              req:
+                value:
+                  items:
+                    - { productoId: "66f1...", cantidad: 2 }
+                    - { productoId: "66f3...", cantidad: 1 }
+      responses:
+        "201":
+          description: Pedido creado en estado 'pendiente'
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Pedido" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
   /pedidos/{id}/confirmar:
     post:
-      summary: Confirmar pedido
+      summary: Confirmar pedido (pendiente → preparando)
+      description: >
+        Calcula total, verifica stock, descuenta stock y cambia el estado a 'preparando'.
       parameters:
         - in: path
           name: id
@@ -37,10 +96,137 @@ paths:
           schema: { type: string }
       responses:
         "200":
-          description: Pedido confirmado
+          description: Pedido en 'preparando'
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/Pedido" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Transición inválida
+          content:
+            application/problem+json:
               example:
-                id: "abcd1234"
-                estado: "confirmado"
-                total: 12500
+                type: "https://errors.example/invalid-transition"
+                title: "Conflict"
+                status: 409
+                detail: "Sólo se puede confirmar un pedido en estado 'pendiente'."
+
+  /pedidos/{id}/estado:
+    patch:
+      summary: Actualizar estado (preparando → listo)
+      description: >
+        Cambia el estado a 'listo' y emite notificación en tiempo real.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EstadoUpdate" }
+            examples:
+              listo:
+                value: { estado: "listo" }
+      responses:
+        "200":
+          description: Estado actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Pedido" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Transición inválida
+          content:
+            application/problem+json:
+              example:
+                type: "https://errors.example/invalid-transition"
+                title: "Conflict"
+                status: 409
+                detail: "Sólo se permite la transición 'preparando' → 'listo'."
+
+components:
+  schemas:
+    Producto:
+      type: object
+      required: [_id, nombre, precio, stock]
+      properties:
+        _id:    { type: string, description: "ObjectId" }
+        nombre: { type: string }
+        precio: { type: number, minimum: 0 }
+        stock:  { type: integer, minimum: 0 }
+
+    ProductoCreate:
+      type: object
+      required: [nombre, precio, stock]
+      properties:
+        nombre: { type: string }
+        precio: { type: number, minimum: 0 }
+        stock:  { type: integer, minimum: 0 }
+
+    Pedido:
+      type: object
+      required: [_id, estado, total, items]
+      properties:
+        _id:    { type: string, description: "ObjectId" }
+        estado: { type: string, enum: [pendiente, preparando, listo] }
+        total:  { type: number, minimum: 0 }
+        items:
+          type: array
+          minItems: 1
+          description: "Lista de productos incluidos en el pedido"
+          items:
+            type: object
+            required: [productoId, nombre, cantidad, precioUnitario, subtotal]
+            properties:
+              productoId:     { type: string, description: "ObjectId del producto" }
+              nombre:         { type: string, description: "nombre del producto al momento del pedido" }
+              cantidad:       { type: integer, minimum: 1 }
+              precioUnitario: { type: number, minimum: 0 }
+              subtotal:       { type: number, minimum: 0 }
+
+    PedidoCreate:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [productoId, cantidad]
+            properties:
+              productoId: { type: string, description: "ObjectId" }
+              cantidad:   { type: integer, minimum: 1 }
+
+    EstadoUpdate:
+      type: object
+      required: [estado]
+      properties:
+        estado:
+          type: string
+          enum: [listo]
+
+  responses:
+    BadRequest:
+      description: Error de validación o de estado
+      content:
+        application/problem+json:
+          example:
+            type: "https://errors.example/validation"
+            title: "Bad Request"
+            status: 400
+            detail: "El campo nombre es requerido."
+
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/problem+json:
+          example:
+            type: "https://errors.example/not-found"
+            title: "Not Found"
+            status: 404
+            detail: "Pedido no encontrado"
