@@ -71,38 +71,71 @@ Rel(Consumer, Service, "procesa mensaje")
 Rel(Service, Repo, "leer/grabar")
 Rel(Service, Messaging, "Publica PedidoActualizado")
 ```
-## Explicación funcionamiento diagrama C4
+## 🧩 Explicación del funcionamiento del diagrama C4
 
-### 1. Entidades: Pedido, Producto
-Este es el "qué" se almacena. El C4 lo resuelve en:
+El diagrama C4 permite visualizar cómo está estructurado y cómo interactúan las distintas partes del sistema, desde los datos que se almacenan hasta la comunicación en tiempo real entre servicios.
 
-Container Diagram: Con el contenedor MongoDB [Document DB], que indica "Persistencia pedidos y productos".
-Components Diagram: Con el componente Repositorio Mongo [Mongoose], que tiene la responsabilidad explícita de CRUD pedidos/productos.
+---
+
+### 1. Entidades: Pedido y Producto
+
+Estas son las entidades principales del sistema: los **pedidos** que realizan los clientes y los **productos** que se venden.
+
+El modelo C4 muestra dónde y cómo se guardan estos datos:
+
+- **Container Diagram:** incluye el contenedor **MongoDB [Document DB]**, que representa la **persistencia de pedidos y productos**.  
+- **Components Diagram:** incluye el componente **Repositorio Mongo [Mongoose]**, responsable de las operaciones CRUD (crear, leer, actualizar y eliminar) sobre pedidos y productos.
+
+---
 
 ### 2. Transacción: Confirmar pedido (stock, total, estados)
-Este es el "corazón" de la lógica de negocio. El C4 lo resuelve en el contenedor API Express:
 
-Un cliente llama al HTTP Router (ej: POST /pedidos).
-El Auth Middleware y Validation Layer lo aprueban.
-El componente Pedidos Service [Lógica de negocio] es el protagonista. Tu diagrama especifica que este componente es responsable de calcular el total, verificar el stock y gestionar el cambio de estado (ej: de "Pendiente" a "Confirmado").
-Finalmente, le pide al Repositorio Mongo que guarde (grabar) el resultado de esta transacción.
+Este proceso representa el **corazón de la lógica de negocio**.  
+En el C4, está resuelto dentro del contenedor **API Express**.
+
+Flujo general:
+
+1. El cliente envía una solicitud HTTP (por ejemplo, `POST /pedidos`).
+2. La **capa de autenticación (Auth Middleware)** y la **capa de validación (Validation Layer)** procesan la solicitud.
+3. El **Pedidos Service [Lógica de negocio]** se encarga de:
+   - Calcular el **total del pedido**.  
+   - Verificar el **stock disponible**.  
+   - Gestionar el **cambio de estado** (por ejemplo, de “Pendiente” a “Confirmado”).  
+4. Finalmente, el servicio solicita al **Repositorio Mongo** que **guarde el resultado de la transacción**.
+
+---
 
 ### 3. Asincronía: Avances de cocina y notificaciones al cliente
-Este requisito se divide en dos partes:
 
-- Avances de cocina (Asincronía):
-Cuando el Pedidos Service confirma el pedido, el Event Publisher publica un mensaje PedidoConfirmado en RabbitMQ.
-El Servicio de Cocina lo recibe a través de su Rabbit Consumer.
-El Cocina Service procesa el mensaje y realiza las "transiciones de estado: preparado / listo". Este es el "avance de cocina" asincrónico.
+Este comportamiento se divide en dos partes complementarias:
 
-- Notificaciones al cliente:
-Una vez que el Cocina Service actualiza el estado (ej: a "Listo"), el componente WS Notifier emite el evento 'pedido_actualizado'.
-Esto notifica al cliente (o al tablero de la cocina) en tiempo real sobre ese avance.
+#### Avances de cocina (procesos asincrónicos)
+- Cuando el **Pedidos Service** confirma un pedido, el **Event Publisher** publica un mensaje `PedidoConfirmado` en **RabbitMQ**.  
+- El **Servicio de Cocina** recibe este mensaje a través de su **Rabbit Consumer**.  
+- El **Cocina Service** procesa el mensaje y actualiza el estado del pedido (por ejemplo: “Preparado” o “Listo”).  
+- Este flujo representa el **avance asincrónico de la cocina**, que ocurre sin bloquear el procesamiento principal.
 
-### 4. Integración: WebSocket tablero de cocina...
+#### Notificaciones al cliente
+- Cuando el **Cocina Service** actualiza el estado (por ejemplo, a “Listo”), el componente **WS Notifier** emite el evento `pedido_actualizado`.  
+- De esta forma, tanto el **cliente** como el **tablero de cocina** reciben **actualizaciones en tiempo real** sobre el avance del pedido.
 
-Container Diagram: El contenedor API Express indica que "incluye servidor WebSocket".
-Components Diagram: Se muestran los componentes WS Notifier, cuya única función es emitir eventos ('pedido_confirmado', 'pedido_actualizado') para ser consumidos por un "tablero de cocina" o el cliente.
+---
+
+### 4. Integración: WebSocket y tablero de cocina
+
+En el **Container Diagram**, el contenedor **API Express** indica que **incluye un servidor WebSocket**, encargado de mantener la comunicación en tiempo real.
+
+En el **Components Diagram**, se muestra el componente **WS Notifier**, cuya función exclusiva es **emitir eventos** (`pedido_confirmado`, `pedido_actualizado`) para que sean **recibidos y visualizados** por el tablero de cocina o el cliente final.
+
+---
+
+**Resumen general:**
+El sistema se apoya en una arquitectura distribuida donde:
+- **MongoDB** gestiona los datos.  
+- **Express** ejecuta la lógica de negocio.  
+- **RabbitMQ** coordina procesos asincrónicos.  
+- **WebSocket** ase
+
 
 
 

@@ -1,7 +1,11 @@
 openapi: 3.1.0
 info:
   title: Sistema de Pedidos del Restaurante
-  version: 1.0.0
+  version: 1.1.0
+  description: >
+    API del sistema de pedidos del restaurante.  
+    Incluye gestión de productos, pedidos, confirmación de pedidos, actualización de estados,
+    y comunicación asincrónica con cocina y notificaciones en tiempo real.
 servers:
   - url: http://localhost:3000
 
@@ -88,7 +92,8 @@ paths:
     post:
       summary: Confirmar pedido (pendiente → preparando)
       description: >
-        Calcula total, verifica stock, descuenta stock y cambia el estado a 'preparando'.
+        Calcula el total, verifica stock, descuenta inventario y cambia el estado del pedido a 'preparando'.
+        Publica el evento **PedidoConfirmado** en RabbitMQ.
       parameters:
         - in: path
           name: id
@@ -96,7 +101,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
-          description: Pedido en 'preparando'
+          description: Pedido confirmado y enviado a cocina
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Pedido" }
@@ -114,9 +119,10 @@ paths:
 
   /pedidos/{id}/estado:
     patch:
-      summary: Actualizar estado (preparando → listo)
+      summary: Actualizar estado del pedido
       description: >
-        Cambia el estado a 'listo' y emite notificación en tiempo real.
+        Cambia el estado (por ejemplo, 'preparando' → 'listo') y emite una notificación en tiempo real
+        mediante WebSocket (evento `pedido_actualizado`).
       parameters:
         - in: path
           name: id
@@ -132,7 +138,7 @@ paths:
                 value: { estado: "listo" }
       responses:
         "200":
-          description: Estado actualizado
+          description: Estado actualizado y notificado
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Pedido" }
@@ -147,6 +153,39 @@ paths:
                 title: "Conflict"
                 status: 409
                 detail: "Sólo se permite la transición 'preparando' → 'listo'."
+
+  /eventos/pedidos:
+    get:
+      summary: Escuchar eventos en tiempo real
+      description: >
+        Permite a los clientes suscribirse mediante **WebSocket** para recibir notificaciones
+        como `pedido_confirmado` y `pedido_actualizado`.
+      responses:
+        "101":
+          description: Conexión WebSocket establecida
+        "400":
+          description: Error al iniciar conexión
+
+  /mensajeria/pedidos-confirmados:
+    post:
+      summary: Endpoint interno (RabbitMQ consumer) para recibir eventos de pedidos confirmados
+      description: >
+        Este endpoint es utilizado por el **Servicio de Cocina** para procesar los mensajes
+        `PedidoConfirmado` publicados en RabbitMQ.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pedidoId, timestamp]
+              properties:
+                pedidoId: { type: string, description: "ID del pedido confirmado" }
+                timestamp: { type: string, format: date-time }
+      responses:
+        "202":
+          description: Mensaje recibido y procesado
+        "400": { $ref: "#/components/responses/BadRequest" }
 
 components:
   schemas:
@@ -183,7 +222,7 @@ components:
             required: [productoId, nombre, cantidad, precioUnitario, subtotal]
             properties:
               productoId:     { type: string, description: "ObjectId del producto" }
-              nombre:         { type: string, description: "nombre del producto al momento del pedido" }
+              nombre:         { type: string, description: "Nombre del producto al momento del pedido" }
               cantidad:       { type: integer, minimum: 1 }
               precioUnitario: { type: number, minimum: 0 }
               subtotal:       { type: number, minimum: 0 }
@@ -208,7 +247,7 @@ components:
       properties:
         estado:
           type: string
-          enum: [listo]
+          enum: [preparando, listo]
 
   responses:
     BadRequest:
