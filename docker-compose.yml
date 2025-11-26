@@ -1,15 +1,39 @@
 services:
   api:
-    image: node:18-alpine
+    build: ./api
     container_name: api
-    command: ["node","-e","require('http').createServer((_,res)=>{res.end('API OK')}).listen(3000)"]
     ports:
       - "3000:3000"
     depends_on:
       - mongo
+      - mongo-init
       - broker
     environment:
-      - PORT=3000
+      # API
+      - API_PORT=3000
+
+      # Mongo
+      - MONGO_URL=mongodb://mongo:27017/resto?replicaSet=rs0
+
+      # RabbitMQ
+      - RABBIT_URL=amqp://guest:guest@broker:5672
+
+      # Keycloak (lo agregamos después)
+      - JWKS_URI=http://keycloak:8080/realms/resto/protocol/openid-connect/certs
+
+    restart: unless-stopped
+
+  servicio-cocina:
+    build: ./servicio-cocina
+    container_name: cocina
+    depends_on:
+      - mongo
+      - mongo-init
+      - broker
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/resto?replicaSet=rs0
+      - RABBIT_URL=amqp://guest:guest@broker:5672
+    restart: unless-stopped
 
   mongo:
     image: mongo:6

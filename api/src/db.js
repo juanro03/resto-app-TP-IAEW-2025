@@ -1,0 +1,10 @@
+import mongoose from 'mongoose';
+import { config } from './config.js';
+import { logger } from './logger.js';
+
+export async function connectDb() {
+  mongoose.set('strictQuery', true);
+
+  await mongoose.connect(config.mongoUrl);
+  logger.info({ msg: 'MongoDB conectado', url: config.mongoUrl });
+}
