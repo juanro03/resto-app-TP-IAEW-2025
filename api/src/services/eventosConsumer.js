@@ -1,11 +1,15 @@
 // api/src/services/eventosConsumer.js
+console.log(">>> EVENTOS CONSUMER CARGADO");
+
 import amqp from "amqplib";
 import { config } from "../config.js";
 import { logger } from "../logger.js";
 import { Pedido } from "../models/pedido.js";
 import { broadcastPedidoActualizado } from "../ws/notifier.js";
 
+
 export async function initPedidoActualizadoConsumer() {
+
   try {
     const conn = await amqp.connect(config.rabbitUrl);
     const channel = await conn.createChannel();

@@ -1,10 +1,14 @@
+console.log(">>> EVENTOS SERVICE CARGADO");
+
 import amqp from 'amqplib';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
+
 let channel;
 
 export async function initRabbit() {
+
   const conn = await amqp.connect(config.rabbitUrl);
   channel = await conn.createChannel();
 

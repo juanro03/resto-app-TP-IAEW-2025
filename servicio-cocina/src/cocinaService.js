@@ -3,10 +3,9 @@ import amqp from "amqplib";
 
 let channel;
 
-export async function initRabbitPublisher(url) {
-  const conn = await amqp.connect(url);
+export async function initRabbitPublisher(conn) {
   channel = await conn.createChannel();
-  await channel.assertExchange("pedidos", "topic", { durable: true });
+  await channel.assertExchange('pedidos', 'topic', { durable: true });
 }
 
 export async function procesarPedidoConfirmado(evento) {

@@ -6,11 +6,10 @@ import { procesarPedidoConfirmado, initRabbitPublisher } from "./cocinaService.j
 
 const RABBIT_URL = process.env.RABBIT_URL || "amqp://broker";
 
-// Retry para cuando RabbitMQ inicia después que la cocina
 async function connectRabbitWithRetry(url, retries = 10, delay = 2000) {
   for (let i = 1; i <= retries; i++) {
     try {
-      logger.info({ msg: `Intentando conectar a RabbitMQ (intento ${i}/${retries})` });
+      logger.info({ msg: `Intentando conectar a RabbitMQ (${i}/${retries})` });
       return await amqp.connect(url);
     } catch (err) {
       logger.warn({ msg: `RabbitMQ no disponible (intento ${i}), reintentando...` });
@@ -25,24 +24,23 @@ async function bootstrap() {
 
   const conn = await connectRabbitWithRetry(RABBIT_URL);
 
-  // Canal consumidor
   const channel = await conn.createChannel();
   await channel.assertExchange("pedidos", "topic", { durable: true });
 
-  const { queue } = await channel.assertQueue("cocina_pedido_confirmado", { durable: true });
+  const { queue } = await channel.assertQueue("cocina_pedido_confirmado", {
+    durable: true
+  });
   await channel.bindQueue(queue, "pedidos", "pedido.confirmado");
 
-  // Canal publisher (dentro de cocinaService.js)
-  await initRabbitPublisher(RABBIT_URL);
+  await initRabbitPublisher(conn);
 
   logger.info({ msg: "Servicio de cocina suscripto a PedidoConfirmado" });
 
-  channel.consume(queue, async (msg) => {
+  channel.consume(queue, async msg => {
     if (!msg) return;
-
     try {
-      const payload = JSON.parse(msg.content.toString());
-      await procesarPedidoConfirmado(payload);
+      const data = JSON.parse(msg.content.toString());
+      await procesarPedidoConfirmado(data);
       channel.ack(msg);
     } catch (err) {
       logger.error({ msg: "Error procesando PedidoConfirmado", err });
@@ -51,7 +49,7 @@ async function bootstrap() {
   });
 }
 
-bootstrap().catch((err) => {
+bootstrap().catch(err => {
   logger.error({ msg: "Fallo al iniciar servicio de cocina", err });
   process.exit(1);
 });

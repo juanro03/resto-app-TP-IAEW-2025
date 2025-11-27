@@ -1,20 +1,20 @@
 import { Router } from 'express';
 import { Pedido } from '../models/pedido.js';
 import { confirmarPedido } from '../services/pedidosService.js';
-import { authMiddleware } from '../middlewares/auth.js';
+import { auth } from '../middlewares/auth.js';
 
 const router = Router();
 
-// listar pedidos
-router.get('/', authMiddleware('ROLE_MOZO'), async (req, res, next) => {
+// listar pedidos (solo mozo)
+router.get('/', auth('ROLE_MOZO'), async (req, res, next) => {
   try {
     const pedidos = await Pedido.find().sort({ createdAt: -1 });
     res.json(pedidos);
   } catch (e) { next(e); }
 });
 
-// crear pedido (estado = pendiente)
-router.post('/', authMiddleware('ROLE_MOZO'), async (req, res, next) => {
+// crear pedido (solo mozo)
+router.post('/', auth('ROLE_MOZO'), async (req, res, next) => {
   try {
     const { items } = req.body;
     const pedido = await Pedido.create({
@@ -26,8 +26,8 @@ router.post('/', authMiddleware('ROLE_MOZO'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// confirmar pedido: transacción multi-paso
-router.post('/:id/confirmar', authMiddleware('ROLE_MOZO'), async (req, res, next) => {
+// confirmar pedido (solo mozo)
+router.post('/:id/confirmar', auth('ROLE_MOZO'), async (req, res, next) => {
   try {
     const pedido = await confirmarPedido(req.params.id);
     res.json(pedido);

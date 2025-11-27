@@ -15,9 +15,8 @@ services:
       - PORT=3000
       - MONGO_URL=mongodb://mongo:27017/resto
       - RABBIT_URL=amqp://guest:guest@broker:5672
-      # URL interna para validar tokens
-      - KEYCLOAK_ISSUER=http://keycloak:8080/realms/resto
-      # URL para que el front/postman obtenga el token
+      - KEYCLOAK_ISSUER=http://localhost:8080/realms/resto
+      - KEYCLOAK_JWKS_URL=http://keycloak:8080/realms/resto/protocol/openid-connect/certs
       - KEYCLOAK_AUTH_URL=http://localhost:8080/realms/resto/protocol/openid-connect/token
     restart: unless-stopped
     networks:
@@ -51,15 +50,15 @@ services:
     image: rabbitmq:3-management
     container_name: broker
     ports:
-      - "5672:5672"   # Protocolo AMQP
-      - "15672:15672" # Dashboard Web
+      - "5672:5672"
+      - "15672:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
     networks:
       - app-network
 
-  # --- SEGURIDAD (OBLIGATORIO) ---
+  # --- SEGURIDAD ---
   keycloak:
     image: quay.io/keycloak/keycloak:22.0.0
     container_name: keycloak
@@ -69,38 +68,14 @@ services:
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-    networks:
-      - app-network
-
-  # --- OBSERVABILIDAD (OBLIGATORIO) ---
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
-    container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limita RAM para que no explote tu PC
-    ports:
-      - "9200:9200"
     volumes:
-      - elastic-data:/usr/share/elasticsearch/data
-    networks:
-      - app-network
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:7.17.10
-    container_name: kibana
-    ports:
-      - "5601:5601"
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    depends_on:
-      - elasticsearch
+      - keycloak-data:/opt/keycloak/data
     networks:
       - app-network
 
 volumes:
   mongo-data:
-  elastic-data:
+  keycloak-data:
 
 networks:
   app-network:
