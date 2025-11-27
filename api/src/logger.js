@@ -2,8 +2,10 @@ import pino from "pino";
 
 export const logger = pino({
   level: "info",
-  transport: {
-    target: "pino-pretty",
-    options: { colorize: true }
-  }
+  formatters: {
+    level(label, number) {
+      return { level: label };
+    }
+  },
+  base: null,
 });
