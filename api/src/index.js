@@ -9,7 +9,6 @@ import pedidosRouter from "./routes/pedidos.js";
 import productosRouter from "./routes/productos.js";
 import { logger } from "./logger.js";
 import { initPedidoActualizadoConsumer } from "./services/eventosConsumer.js";
-import { randomUUID } from "crypto";
 
 async function bootstrap() {
   await connectDb();
@@ -20,6 +19,7 @@ async function bootstrap() {
   app.use(cors());
   app.use(express.json());
 
+  // <<<<<<<<  LOGGING DEBE IR MUCHO ANTES QUE TODO
   app.use((req, res, next) => {
     const start = Date.now();
 
@@ -30,7 +30,7 @@ async function bootstrap() {
         msg: "request_completed",
         method: req.method,
         path: req.originalUrl,
-        statusCode: res.statusCode,  
+        statusCode: res.statusCode,
         duration_ms: duration
       });
     });
@@ -38,8 +38,11 @@ async function bootstrap() {
     next();
   });
 
-  app.use("/pedidos", pedidosRouter);
+  // RUTAS PUBLICAS (SIN TOKEN)
   app.use("/productos", productosRouter);
+
+  // RUTAS PROTEGIDAS (SOLO DESPUÉS DEL LOGGING)
+  app.use("/pedidos", pedidosRouter);
 
   const server = http.createServer(app);
   initWs(server);

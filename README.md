@@ -159,3 +159,7 @@ git rev-parse HEAD
 ```bash
 docker compose up -d
 curl http://localhost:3000  
+
+
+
+ETAPA 2: DESARROLLO, OBSERVABILIDAD, PRUEBAS

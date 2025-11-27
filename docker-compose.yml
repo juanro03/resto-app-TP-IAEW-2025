@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # --- MICROSERVICIOS ---
+  # --- TU APP ---
   api:
     build: ./api
     container_name: api
@@ -11,31 +11,18 @@ services:
       - mongo
       - broker
       - keycloak
+      # - elasticsearch # Descomentar si quieres que espere a Elastic
     environment:
       - PORT=3000
       - MONGO_URL=mongodb://mongo:27017/resto
       - RABBIT_URL=amqp://guest:guest@broker:5672
       - KEYCLOAK_ISSUER=http://localhost:8080/realms/resto
       - KEYCLOAK_JWKS_URL=http://keycloak:8080/realms/resto/protocol/openid-connect/certs
-      - KEYCLOAK_AUTH_URL=http://localhost:8080/realms/resto/protocol/openid-connect/token
-    restart: unless-stopped
+      - LOG_LEVEL=info 
     networks:
       - app-network
 
-  servicio-cocina:
-    build: ./servicio-cocina
-    container_name: cocina
-    depends_on:
-      - mongo
-      - broker
-    environment:
-      - MONGO_URL=mongodb://mongo:27017/resto
-      - RABBIT_URL=amqp://guest:guest@broker:5672
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  # --- INFRAESTRUCTURA ---
+  # --- INFRAESTRUCTURA APP ---
   mongo:
     image: mongo:6
     container_name: mongo
@@ -58,7 +45,6 @@ services:
     networks:
       - app-network
 
-  # --- SEGURIDAD ---
   keycloak:
     image: quay.io/keycloak/keycloak:22.0.0
     container_name: keycloak
@@ -73,9 +59,53 @@ services:
     networks:
       - app-network
 
+  # --- OBSERVABILIDAD (ELK) ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Bajamos a 512m para no saturar tu PC
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - app-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - app-network
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: filebeat
+    user: root # Necesario para leer el socket de Docker
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    volumes:
+      # Montamos el archivo de configuración que creaste
+      - ./observabilidad/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      # Montamos los logs internos de Docker del HOST
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - elasticsearch
+    networks:
+      - app-network
+
 volumes:
   mongo-data:
   keycloak-data:
+  esdata:
 
 networks:
   app-network:

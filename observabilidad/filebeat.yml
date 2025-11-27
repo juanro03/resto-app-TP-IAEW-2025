@@ -1,14 +1,29 @@
 filebeat.inputs:
   - type: container
-    enabled: true
     paths:
       - /var/lib/docker/containers/*/*.log
     processors:
-      - add_docker_metadata: ~
+      # 1. Agrega metadata de docker (nombre del contenedor, imagen, etc.)
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
 
-    json.keys_under_root: true
-    json.add_error_key: true
-    json.expand_keys: true
+      # 2. (OPCIONAL) Filtra para que SOLO procese logs de tu API
+      # Si lo quitas, verás logs de Mongo y Rabbit también (que suelen ser texto plano y ensucian)
+      - drop_event:
+          when:
+            not:
+              contains:
+                container.name: "api" 
+
+      # 3. Decodifica el JSON que viene dentro del mensaje de Docker
+      - decode_json_fields:
+          fields: ["message"]
+          target: "" # Aplana el JSON (message.level -> level)
+          overwrite_keys: true # Si Pino manda 'timestamp', sobrescribe al de Docker
+          add_error_key: true
 
 output.elasticsearch:
-  hosts: ["http://elasticsearch:9200"]
+  hosts: ["elasticsearch:9200"] # Nombre del servicio en el docker-compose unificado
+
+setup.kibana:
+  host: "kibana:5601"
